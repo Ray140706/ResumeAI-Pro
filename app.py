@@ -70,8 +70,7 @@ if st.button("Analyze Resume"):
 
         similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
         
-
-     COMMON_WORDS = {
+ COMMON_WORDS = {
     # generic job words
     "job","role","candidate","position","company","organization",
 
