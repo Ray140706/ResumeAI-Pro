@@ -85,7 +85,7 @@ if st.button("Analyze Resume"):
     # filler verbs
     "work","working","worked","develop","developed","developing",
     "maintain","maintaining","build","building","create","creating",
-    "write","writing","optimize","optimizing","debug","debugging",
+    "write","writing","optimize","optimizing","debug","debugging", "implement"
 
     # job description fillers
     "responsibilities","requirements","required","preferred",
