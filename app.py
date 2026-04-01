@@ -71,20 +71,38 @@ if st.button("Analyze Resume"):
         similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
         
 
-        COMMON_WORDS = {
-    "responsibilities", "required", "preferred", "strong",
-    "good", "ability", "work", "team", "skills", "knowledge",
-    "experience", "understanding", "basic","using", "based", "ability", "work", "team", "good",
-    "strong", "skills", "knowledge", "experience",
-    "responsibilities", "required", "preferred",
-    "including", "various", "related", "field", "maintain", "clean", "degree", "write", 
-    "debug", "fundamentals", "teams", "optimize", "communication", "looking", "existing", "qualifications", "motivated",
-      "title", "collaborate", "develop", "efficient", "pursuing", "analytical", "basics", "systems", "functional",
-     "problem", "cross", "solving", "oriented", "object"
-    }
+     COMMON_WORDS = {
+    # generic job words
+    "job","role","candidate","position","company","organization",
+
+    # vague qualities
+    "strong","good","excellent","basic","advanced","solid","proven",
+
+    # soft skills (remove to avoid noise)
+    "communication","team","teamwork","leadership","collaboration",
+    "analytical","problem","solving","skills","ability",
+
+    # filler verbs
+    "work","working","worked","develop","developed","developing",
+    "maintain","maintaining","build","building","create","creating",
+    "write","writing","optimize","optimizing","debug","debugging",
+
+    # job description fillers
+    "responsibilities","requirements","required","preferred",
+    "including","such","various","related","field",
+
+    # education noise
+    "degree","bachelor","master","science","engineering","computer",
+
+    # connectors / useless
+    "using","based","with","and","or","for","the","a","an","to","of"
+}
 
         jd_keywords = extract_top_keywords(jd_clean, n=30)
-        jd_keywords = jd_keywords - COMMON_WORDS
+        jd_keywords = {
+        word for word in jd_keywords
+        if word not in COMMON_WORDS and len(word) > 3
+        }
         resume_keywords = set(resume_clean.split())
 
         missing = []
