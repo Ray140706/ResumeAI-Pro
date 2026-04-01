@@ -51,32 +51,6 @@ def extract_top_keywords(text, n=20):
     
     return set(keywords)
 
-COMMON_WORDS = {
-    # generic job words
-    "job","role","candidate","position","company","organization",
-
-    # vague qualities
-    "strong","good","excellent","basic","advanced","solid","proven",
-
-    # soft skills (remove to avoid noise)
-    "communication","team","teamwork","leadership","collaboration",
-    "analytical","problem","solving","skills","ability",
-
-    # filler verbs
-    "work","working","worked","develop","developed","developing",
-    "maintain","maintaining","build","building","create","creating",
-    "write","writing","optimize","optimizing","debug","debugging", "implement",
-
-    # job description fillers
-    "responsibilities","requirements","required","preferred",
-    "including","such","various","related","field",
-
-    # education noise
-    "degree","bachelor","master","science","engineering","computer",
-
-    # connectors / useless
-    "using","based","with","and","or","for","the","a","an","to","of", "title", "looking"
-}
 
 st.title("ResumeAI Pro - AI Resume Planner")
 
@@ -98,24 +72,44 @@ if st.button("Analyze Resume"):
         similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
         
  
-        jd_keywords = extract_top_keywords(jd_clean, n=30)
-        jd_keywords = {
-        word for word in jd_keywords
-        if word not in COMMON_WORDS and len(word) > 3
-        }
-        resume_keywords = set(resume_clean.split())
+    def is_valid_skill(word):
+        word = word.lower()
 
-        missing = []
+    # Remove short words
+        if len(word) <= 3:
+            return False
 
-        for word in jd_keywords:
-            if word not in resume_keywords:
-        # Ignore very short or useless words
-                if len(word) > 3:
-                     missing.append(word)
+    # Remove verbs/adverbs
+        if word.endswith(("ing", "ed", "ly")):
+            return False
+
+    # Remove generic words
+        GENERIC = {
+        "system","application","process","task","role","team",
+        "project","work","company","business","management"
+       }
+
+        if word in GENERIC:
+           return False
+
+        return True
         
-        matched = len(jd_keywords) - len(missing)
-        skill_score = (matched / len(jd_keywords)) * 100
+        jd_keywords = extract_keywords(jd_clean)
 
+        jd_keywords = {
+                    word for word in jd_keywords
+                    if is_valid_skill(word)
+                    }
+
+        KNOWN_SKILLS = {
+    "python","java","sql","html","css","javascript",
+    "algorithms","structures","oop","git","github",
+    "flask","streamlit","numpy","pandas","api","rest"
+}
+        jd_keywords = {
+            word for word in jd_keywords
+            if is_valid_skill(word) or word in KNOWN_SKILLS
+        }
         final_score = (similarity * 100 * 0.4) + (skill_score * 0.6)
         score = round(final_score, 2)
 
