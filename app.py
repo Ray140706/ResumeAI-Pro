@@ -70,7 +70,11 @@ if st.button("Analyze Resume"):
         vectors = vectorizer.fit_transform([resume_clean, jd_clean])
 
         similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
-        
+
+    def extract_skills_section(text):
+        if "skills" in text:
+            return text.split("skills")[-1]
+        return text
  
     def is_valid_skill(word):
         word = word.lower()
