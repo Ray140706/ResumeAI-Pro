@@ -31,7 +31,7 @@ def extract_text_from_pdf(uploaded_file):
     return text
 
 # -----------------------------
-# TEXT CLEANING
+# TEXT PREPROCESSING
 # -----------------------------
 def preprocess(text):
     text = text.lower()
@@ -41,40 +41,60 @@ def preprocess(text):
     return " ".join([w for w in words if w not in stop_words])
 
 # -----------------------------
-# SKILL VALIDATION FILTER
+# FILTERS
+# -----------------------------
+SECTION_WORDS = {
+    "core","skills","technologies","domains","tasks",
+    "responsibilities","requirements","title","job",
+    "summary","role"
+}
+
+NON_SKILL_CONCEPTS = {
+    "system","application","process","task","role","team",
+    "project","work","company","business","management",
+    "skills","knowledge","experience","ability",
+    "database","integration","optimization","performance",
+    "design","development"
+}
+
+KNOWN_SKILLS = {
+    # Tech
+    "python","java","sql","html","css","javascript",
+    "algorithms","structures","oop","git","github",
+    "flask","streamlit","numpy","pandas","api","rest",
+
+    # Business / other domains
+    "marketing","seo","branding","finance","accounting",
+    "cad","matlab","thermodynamics","excel","powerbi"
+}
+
+# -----------------------------
+# SKILL VALIDATION
 # -----------------------------
 def is_valid_skill(word):
-    word = word.lower()
-
-    # Remove short words
     if len(word) <= 3:
         return False
-
-    # Remove verbs/adverbs
-    if word.endswith(("ing", "ed", "ly")):
+    if word.endswith(("ing","ed","ly")):
         return False
-
-    # Remove generic words
-    GENERIC = {
-        "system","application","process","task","role","team",
-        "project","work","company","business","management",
-        "skills","knowledge","experience","ability"
-    }
-
-    if word in GENERIC:
-        return False
-
     return True
 
 # -----------------------------
-# EXTRACT IMPORTANT KEYWORDS
+# KEYWORD EXTRACTION
 # -----------------------------
 def extract_keywords(text):
     vectorizer = TfidfVectorizer(stop_words='english', max_features=100)
     vectorizer.fit([text])
     words = vectorizer.get_feature_names_out()
 
-    return {w for w in words if is_valid_skill(w)}
+    filtered = {
+        w for w in words
+        if (
+            (is_valid_skill(w) and w not in SECTION_WORDS and w not in NON_SKILL_CONCEPTS)
+            or w in KNOWN_SKILLS
+        )
+    }
+
+    return filtered
 
 # -----------------------------
 # STREAMLIT UI
@@ -95,19 +115,21 @@ if st.button("Analyze"):
 
     if resume_file is None or jd_file is None:
         st.warning("Please upload both files")
+
     else:
         resume_text = extract_text_from_pdf(resume_file)
         jd_text = extract_text_from_pdf(jd_file)
 
         if not resume_text or not jd_text:
             st.error("Text extraction failed. Try another PDF.")
+
         else:
             # Clean text
             resume_clean = preprocess(resume_text)
             jd_clean = preprocess(jd_text)
 
             # -----------------------------
-            # SIMILARITY SCORE
+            # SIMILARITY
             # -----------------------------
             vectorizer = TfidfVectorizer(ngram_range=(1,2))
             vectors = vectorizer.fit_transform([resume_clean, jd_clean])
@@ -121,9 +143,12 @@ if st.button("Analyze"):
             resume_words = set(resume_clean.split())
 
             # -----------------------------
-            # FIND MISSING SKILLS
+            # MISSING SKILLS
             # -----------------------------
-            missing = [skill for skill in jd_skills if skill not in resume_words]
+            missing = [
+                skill for skill in jd_skills
+                if skill not in resume_words
+            ]
 
             # -----------------------------
             # SCORING
