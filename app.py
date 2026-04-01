@@ -75,7 +75,7 @@ COMMON_WORDS = {
     "degree","bachelor","master","science","engineering","computer",
 
     # connectors / useless
-    "using","based","with","and","or","for","the","a","an","to","of"
+    "using","based","with","and","or","for","the","a","an","to","of", "title", "looking"
 }
 
 st.title("ResumeAI Pro - AI Resume Planner")
