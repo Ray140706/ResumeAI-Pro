@@ -80,7 +80,7 @@ if st.button("Analyze Resume"):
     "including", "various", "related", "field", "maintain", "clean", "degree", "write", 
     "debug", "fundamentals", "teams", "optimize", "communication", "looking", "existing", "qualifications", "motivated",
       "title", "collaborate", "develop", "efficient", "pursuing", "analytical", "basics", "systems", "functional",
-     "problem", "cross", "solving"
+     "problem", "cross", "solving", "oriented", "object"
     }
 
         jd_keywords = extract_top_keywords(jd_clean, n=30)
