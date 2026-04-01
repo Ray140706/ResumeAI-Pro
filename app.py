@@ -1,148 +1,173 @@
-import PyPDF2
 import streamlit as st
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+import PyPDF2
 import nltk
-from nltk.corpus import stopwords
 import string
 
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from nltk.corpus import stopwords
+
+# -----------------------------
+# NLTK SETUP
+# -----------------------------
 try:
     stopwords.words('english')
 except LookupError:
-    nltk.download('stopwords')
+    nltk.download('stopwords', quiet=True)
 
+# -----------------------------
+# PDF TEXT EXTRACTION
+# -----------------------------
 def extract_text_from_pdf(uploaded_file):
     text = ""
-    pdf_reader = PyPDF2.PdfReader(uploaded_file)
-    
-    for page in pdf_reader.pages:
-        extracted = page.extract_text()
-        if extracted:
-            text += extracted
-    
+    try:
+        pdf_reader = PyPDF2.PdfReader(uploaded_file)
+        for page in pdf_reader.pages:
+            content = page.extract_text()
+            if content:
+                text += content
+    except:
+        return ""
     return text
 
-def extract_top_keywords(text, n=20):
-    vectorizer = TfidfVectorizer(
-        stop_words='english',
-        ngram_range=(1,2),
-        max_features=50
-    )
-    
-    vectors = vectorizer.fit_transform([text])
-    return set(vectorizer.get_feature_names_out())
-
+# -----------------------------
+# TEXT CLEANING
+# -----------------------------
 def preprocess(text):
     text = text.lower()
-    text = text.translate(str.maketrans('', '', string.punctuation))  # remove punctuation
+    text = text.translate(str.maketrans('', '', string.punctuation))
     words = text.split()
     stop_words = set(stopwords.words('english'))
-    words = [w for w in words if w not in stop_words]
-    return " ".join(words)
+    return " ".join([w for w in words if w not in stop_words])
 
-def extract_top_keywords(text, n=20):
-    vectorizer = TfidfVectorizer(
-        stop_words='english',
-        max_features=100
-    )
-    
-    vectorizer.fit([text])
-    keywords = vectorizer.get_feature_names_out()
-    
-    return set(keywords)
-
-
-st.title("ResumeAI Pro - AI Resume Planner")
-
-uploaded_resume = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
-job_desc = st.file_uploader("Upload Job Description (PDF)", type=["pdf"])
-
-if st.button("Analyze Resume"):
-    if uploaded_resume is None or job_desc is None:
-        st.warning("Enter both fields")
-    else:
-        resume_text = extract_text_from_pdf(uploaded_resume)
-        resume_clean = preprocess(resume_text)
-        jd_text = extract_text_from_pdf(job_desc)
-        jd_clean = preprocess(jd_text)
-
-        vectorizer = TfidfVectorizer(ngram_range=(1,2))
-        vectors = vectorizer.fit_transform([resume_clean, jd_clean])
-
-        similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
-
-    def extract_skills_section(text):
-        if "skills" in text:
-            return text.split("skills")[-1]
-        return text
- 
-    def is_valid_skill(word):
-        word = word.lower()
+# -----------------------------
+# SKILL VALIDATION FILTER
+# -----------------------------
+def is_valid_skill(word):
+    word = word.lower()
 
     # Remove short words
-        if len(word) <= 3:
-            return False
+    if len(word) <= 3:
+        return False
 
     # Remove verbs/adverbs
-        if word.endswith(("ing", "ed", "ly")):
-            return False
+    if word.endswith(("ing", "ed", "ly")):
+        return False
 
     # Remove generic words
-        GENERIC = {
+    GENERIC = {
         "system","application","process","task","role","team",
-        "project","work","company","business","management"
-       }
+        "project","work","company","business","management",
+        "skills","knowledge","experience","ability"
+    }
 
-        if word in GENERIC:
-           return False
+    if word in GENERIC:
+        return False
 
-        return True
-        
-        jd_keywords = extract_keywords(jd_clean)
+    return True
 
-        jd_keywords = {
-                    word for word in jd_keywords
-                    if is_valid_skill(word)
-                    }
+# -----------------------------
+# EXTRACT IMPORTANT KEYWORDS
+# -----------------------------
+def extract_keywords(text):
+    vectorizer = TfidfVectorizer(stop_words='english', max_features=100)
+    vectorizer.fit([text])
+    words = vectorizer.get_feature_names_out()
 
-        KNOWN_SKILLS = {
-    "python","java","sql","html","css","javascript",
-    "algorithms","structures","oop","git","github",
-    "flask","streamlit","numpy","pandas","api","rest"
-}
-        jd_keywords = {
-            word for word in jd_keywords
-            if is_valid_skill(word) or word in KNOWN_SKILLS
-        }
-        final_score = (similarity * 100 * 0.4) + (skill_score * 0.6)
-        score = round(final_score, 2)
+    return {w for w in words if is_valid_skill(w)}
 
-        
-        if len(missing) == 0:
-         score = min(score + 10, 95)
+# -----------------------------
+# STREAMLIT UI
+# -----------------------------
+st.set_page_config(page_title="ResumeAI Pro", layout="centered")
 
-        st.subheader(f"Match Score: {score}%")
+st.title("📄 ResumeAI Pro - Smart Resume Analyzer")
 
-        st.subheader("Missing Key Skills:")
-        
-        if len(missing) == 0:
-            st.success("No major skills missing. Resume matches job requirements well.")
-            if score < 85:
-                 st.subheader("Suggestions:")
-                 st.write("Try aligning your resume wording more closely with the job description.")
-                 st.write("Include exact terms like 'develop', 'optimize', 'collaborate'.")
-        
-             
+st.write("Upload Resume and Job Description PDFs")
+
+resume_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
+jd_file = st.file_uploader("Upload Job Description (PDF)", type=["pdf"])
+
+# -----------------------------
+# MAIN LOGIC
+# -----------------------------
+if st.button("Analyze"):
+
+    if resume_file is None or jd_file is None:
+        st.warning("Please upload both files")
+    else:
+        resume_text = extract_text_from_pdf(resume_file)
+        jd_text = extract_text_from_pdf(jd_file)
+
+        if not resume_text or not jd_text:
+            st.error("Text extraction failed. Try another PDF.")
         else:
-            st.write(", ".join(missing))
+            # Clean text
+            resume_clean = preprocess(resume_text)
+            jd_clean = preprocess(jd_text)
 
-        st.subheader("Extracted Resume Text (Preview):")
-        st.write(resume_text[:500])
+            # -----------------------------
+            # SIMILARITY SCORE
+            # -----------------------------
+            vectorizer = TfidfVectorizer(ngram_range=(1,2))
+            vectors = vectorizer.fit_transform([resume_clean, jd_clean])
 
+            similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
 
-        if score < 50:
-            st.error("Low match. Improve skills.")
-        elif score < 75:
-            st.warning("Moderate match.")
-        else:
-            st.success("Good match!")
+            # -----------------------------
+            # SKILL EXTRACTION
+            # -----------------------------
+            jd_skills = extract_keywords(jd_clean)
+            resume_words = set(resume_clean.split())
+
+            # -----------------------------
+            # FIND MISSING SKILLS
+            # -----------------------------
+            missing = [skill for skill in jd_skills if skill not in resume_words]
+
+            # -----------------------------
+            # SCORING
+            # -----------------------------
+            if len(jd_skills) > 0:
+                skill_score = ((len(jd_skills) - len(missing)) / len(jd_skills)) * 100
+            else:
+                skill_score = 0
+
+            final_score = (similarity * 100 * 0.4) + (skill_score * 0.6)
+
+            if len(missing) == 0:
+                final_score = min(final_score + 10, 95)
+
+            score = round(final_score, 2)
+
+            # -----------------------------
+            # OUTPUT
+            # -----------------------------
+            st.subheader(f"📊 Match Score: {score}%")
+
+            if missing:
+                st.subheader("❌ Missing Skills:")
+                st.write(", ".join(sorted(missing)))
+            else:
+                st.success("✅ No major skills missing")
+
+            # Feedback
+            if score < 50:
+                st.error("Low match. Add relevant skills.")
+            elif score < 75:
+                st.warning("Moderate match. Improve alignment.")
+            else:
+                st.success("Good match!")
+
+            # Suggestions
+            st.subheader("💡 Suggestions:")
+            st.write("- Include more relevant tools and technologies")
+            st.write("- Match keywords from job description")
+            st.write("- Add project experience using required skills")
+
+            # Preview
+            st.subheader("📄 Resume Preview")
+            st.write(resume_text[:400])
+
+            st.subheader("📄 Job Description Preview")
+            st.write(jd_text[:400])
