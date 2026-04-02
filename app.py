@@ -192,7 +192,7 @@ if st.button("Analyze"):
 
             # Preview
             st.subheader("📄 Resume Preview")
-            st.write(resume_text[:400])
+            st.write(resume_text[:399])
 
             st.subheader("📄 Job Description Preview")
-            st.write(jd_text[:400])
+            st.write(jd_text[:399])
