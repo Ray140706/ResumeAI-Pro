@@ -54,7 +54,7 @@ NON_SKILL_CONCEPTS = {
     "project","work","company","business","management",
     "skills","knowledge","experience","ability",
     "database","integration","optimization","performance",
-    "design","development", "intern"
+    "design","development", "intern", "tools"
 }
 
 KNOWN_SKILLS = {
